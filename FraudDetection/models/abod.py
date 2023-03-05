@@ -19,6 +19,9 @@ def abod_anomaly_detection(data, contamination=0.055):
         A binary vector with 'True' for outliers and 'False' for inliers.
 
     """
+	
+    print("Hello Try 1")
+	
     # Initialize the ABOD model
     abod = ABOD(contamination=contamination)
 
