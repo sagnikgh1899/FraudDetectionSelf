@@ -6,4 +6,3 @@ dependencies:
   - pylint
   - python=3
   - pandas
-  - pyod
