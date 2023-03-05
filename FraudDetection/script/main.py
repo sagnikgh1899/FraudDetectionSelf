@@ -1,77 +1,99 @@
+"""
+Main module that comprises of the Flask App for hosting the webpage,
+along with the fraud analysis.
+"""
 import csv
-import pandas as pd
-import io
-import json
-import os
-import sys
 import time
-
+import sys
+import os
+import json
+import io
+import pandas as pd
 from flask import Flask, request, render_template, session, Response
 from sklearn.metrics import precision_score, recall_score, f1_score, matthews_corrcoef
 
-sys.path.append("../models")
-from lof import lof_anomaly_detection
-from knn import knn_anomaly_detection
-from copod import copod_anomaly_detection
-from abod import abod_anomaly_detection
-from ecod import ecod_anomaly_detection
+sys.path.append(os.path.abspath("../models"))
+# pylint: disable=C0413
+from models import lof_anomaly_detection
+from models import knn_anomaly_detection
+from models import copod_anomaly_detection
+from models import abod_anomaly_detection
+from models import ecod_anomaly_detection
 
-######
-# Write a function that takes in the models and then creates the models_performance.json
-# file, which is a dictionary of dictionaries in the order - Model Name: precision, recall, f1, mcc, time.
-# The file should be stored in a folder 'json' in the same directory as main.py
+
+def create_directory_if_not_exists(directory):
+    """
+    Create a directory if it does not exist.
+    Args:
+        directory (str): The name of the directory to be created.
+    """
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+
 JSON_FILES = 'json'
-if not os.path.exists(JSON_FILES):
-    os.makedirs(JSON_FILES)
+create_directory_if_not_exists(JSON_FILES)
 
 
-def compute_model_performance(fraud_detection_models, x_test_file, y_test_file, filename="models_performance.json"):
+def compute_performance_metrics(model, x_test, y_test):
+    """
+    Computes the performance metrics for the given model and test data.
+    Args:
+        model: The fraud detection model to evaluate.
+        x_test: The test data to evaluate.
+        y_test: The true labels for the test data.
+    Returns:
+        A dictionary with the computed performance metrics.
+    """
+    start_time = time.time()
+    x_test = x_test.astype('float64')
+    y_pred = model(x_test)
+    end_time = time.time()
+    precision = round(precision_score(y_test, y_pred), 3)
+    recall = round(recall_score(y_test, y_pred), 3)
+    f1_value = round(f1_score(y_test, y_pred), 3)
+    mcc = round(matthews_corrcoef(y_test, y_pred), 3)
+    total_time = round((end_time - start_time), 3)
+    performance = {
+        "precision": precision,
+        "recall": recall,
+        "f1": f1_value,
+        "mcc": mcc,
+        "time": total_time
+    }
+    return performance
+
+
+def compute_model_performance(fraud_detection_models, x_test_file, y_test_file,
+                              filename="models_performance.json"):
     """
     Computes the performance metrics for each model and stores the values in a JSON file.
-
     Args:
-    models: A dictionary of model names to PyOD models to compute performance metrics for.
-    X_test_file: A string containing the filename of the csv file containing the test data.
-    y_test_file: A string containing the filename of the csv file containing the true labels for the test data.
-    filename: The name of the JSON file to save the performance metrics.
+        fraud_detection_models : A dictionary of model names to compute performance metrics.
+        x_test_file : Filename of the csv file containing the test data.
+        y_test_file : Filename of the csv file containing the true labels for the test data.
+        filename : The name of the JSON file to save the performance metrics.
     """
     performance = {}
-
-    # Load test data from csv files
     x_test = pd.read_csv(x_test_file)
     y_test = pd.read_csv(y_test_file)
-
     for model_name, model in fraud_detection_models.items():
         print(f"Computing performance for {model_name}...")
-        start_time = time.time()
-        x_test = x_test.astype('float64')
-        y_pred = model(x_test)
-        end_time = time.time()
-
-        precision = round(precision_score(y_test, y_pred), 3)
-        recall = round(recall_score(y_test, y_pred), 3)
-        f1 = round(f1_score(y_test, y_pred), 3)
-        mcc = round(matthews_corrcoef(y_test, y_pred), 3)
-        total_time = round((end_time - start_time), 3)
-
-        performance[model_name] = {
-            "precision": precision,
-            "recall": recall,
-            "f1": f1,
-            "mcc": mcc,
-            "time": total_time
-        }
-
+        performance[model_name] = compute_performance_metrics(model, x_test, y_test)
     filepath = os.path.join(JSON_FILES, filename)
-    with open(filepath, 'w') as f:
-        json.dump(performance, f)
-    # with open(filename, "w") as f:
-    #     json.dump(performance, f)
-
-    # print(f"Performance metrics saved to {filepath}")
+    with open(filepath, 'w', encoding='utf-8') as fname:
+        json.dump(performance, fname)
 
 
-def define_models(data_model_performance, correct_labels):
+def define_models(data_model_performance: dict, correct_labels: pd.Series):
+    """
+    Define a dictionary of anomaly detection models and compute their performance.
+    Args:
+        data_model_performance : A dictionary containing data frames with the models' performance.
+        correct_labels : A pandas series with the correct labels for the data.
+    Returns:
+        None.
+    """
     models = {
         "LOF": lof_anomaly_detection,
         "KNN": knn_anomaly_detection,
@@ -83,92 +105,95 @@ def define_models(data_model_performance, correct_labels):
 
 
 UPLOAD_DIR = 'uploads'
+create_directory_if_not_exists(UPLOAD_DIR)
 
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
+app = Flask(__name__, template_folder=os.path.abspath('../templates'),
+            static_folder=os.path.abspath('../static'))
 
-app = Flask(__name__, template_folder=os.path.abspath('../templates'), static_folder=os.path.abspath('../static'))
-
-# Set the session key and type
 app.secret_key = 'my_secret_key'
 app.config['SESSION_TYPE'] = 'filesystem'
 
-# Initialize the app with the session object
-app.config.from_object(__name__)
+
+def initialize_app(application):
+    """
+    Initializes the Flask app with the session object.
+    Args:
+        application (Flask): The Flask app object to be initialized.
+    """
+    application.config.from_object(__name__)
+
+
+initialize_app(app)
 
 
 @app.route('/')
 def home():
+    """
+    Renders the start page HTML template.
+    Returns:
+        str: The rendered HTML template.
+    """
     return render_template('start-page.htm')
 
 
 @app.route('/home-page')
 def home_page():
+    """
+    Renders the start page.
+    Returns:
+        A rendered HTML template.
+    """
     return render_template('start-page.htm')
 
 
 @app.route('/user-page')
 def user_page():
+    """
+    Render the user page, which displays the performance of the models.
+    Returns:
+        str: The HTML content to be displayed on the user page.
+    """
     filepath = os.path.join(JSON_FILES, 'models_performance.json')
-    with open(filepath) as f:
-        models = json.load(f)
+    with open(filepath, encoding='utf-8') as fname:
+        models = json.load(fname)
     try:
         best_model_name = session.get('best_model_name')
-    except:
+    except ValueError:
         best_model_name = None
     return render_template('user-page.htm', models=models, best_model=best_model_name)
 
 
 @app.route('/upload-csv', methods=['POST'])
 def upload_csv():
+    """
+    Uploads a CSV file and displays the best performing model on the user page.
+    Returns:
+        str: A message indicating whether a file was uploaded or not.
+    """
     filepath = os.path.join(JSON_FILES, 'models_performance.json')
-    with open(filepath) as f:
-        models = json.load(f)
+    with open(filepath, encoding='utf-8') as fname:
+        models = json.load(fname)
     best_model_name = None
     best_f1 = -1
     best_mcc = -1
     best_time = float('inf')
     for model_name, model_details in models.items():
-        # precision = model_details['precision']
-        # recall = model_details['recall']
-        f1 = model_details['f1']
+        f1_value = model_details['f1']
         mcc = model_details['mcc']
         time_to_predict = model_details['time']
-        print(model_name, f1, mcc, time_to_predict)
-
+        # print(model_name, f1, mcc, time_to_predict)
         count_improvement = 0
-        if f1 > best_f1:
+        if f1_value > best_f1:
             count_improvement += 1
         if mcc > best_mcc:
             count_improvement += 1
         if time_to_predict < best_time:
             count_improvement += 1
         if count_improvement >= 2:
-            best_f1 = f1
+            best_f1 = f1_value
             best_mcc = mcc
             best_time = time_to_predict
             best_model_name = model_name
-
-        # if f1 >= best_f1 and mcc >= best_mcc and time_to_predict < best_time:
-        #     best_f1 = f1
-        #     best_mcc = mcc
-        #     best_time = time_to_predict
-        #     best_model_name = model_name
-        # elif f1 >= best_f1 and mcc >= best_mcc:
-        #     best_f1 = f1
-        #     best_mcc = mcc
-        #     best_time = time_to_predict
-        #     best_model_name = model_name
-        # elif f1 > best_f1 and time_to_predict < best_time:
-        #     best_f1 = f1
-        #     best_mcc = mcc
-        #     best_time = time_to_predict
-        #     best_model_name = model_name
-        # elif mcc > best_mcc and time_to_predict < best_time:
-        #     best_f1 = f1
-        #     best_mcc = mcc
-        #     best_time = time_to_predict
-        #     best_model_name = model_name
     if 'csv-file' not in request.files:
         return 'No file selected'
     file = request.files['csv-file']
@@ -176,20 +201,25 @@ def upload_csv():
         return 'No file selected'
     contents = file.read().decode('utf-8')
     filepath = os.path.join(UPLOAD_DIR, file.filename)
-    with open(filepath, 'w') as f:
-        f.write(contents)
+    with open(filepath, 'w', encoding='utf-8') as fname:
+        fname.write(contents)
     session['filepath'] = filepath
     session['best_model_name'] = best_model_name
     session['models'] = models
-    return render_template('user-page.htm', models=models, best_model=best_model_name, filepath=filepath)
+    return render_template('user-page.htm', models=models, best_model=best_model_name,
+                           filepath=filepath)
 
 
 @app.route('/download-csv', methods=['POST'])
 def download_csv():
+    """
+    Detects anomalies using the deployed model and returns CSV file of the fraudulent claims.
+    Returns:
+        flask.Response: The HTTP response containing the fraudulent claims in a CSV file.
+    """
     filepath = session.get('filepath')
     best_model_name = session.get('best_model_name')
     deployed_model = None
-    print("F1", best_model_name)
     if best_model_name == "LOF":
         deployed_model = lof_anomaly_detection
     elif best_model_name == "KNN":
@@ -200,43 +230,43 @@ def download_csv():
         deployed_model = abod_anomaly_detection
     elif best_model_name == "ECOD":
         deployed_model = ecod_anomaly_detection
-    # if best_model_name == "LOF":
-    #   deployed_model = lof_anomaly_detection
     if filepath is None or not os.path.exists(filepath):
         return 'File not found', 404
-
-    # Read the CSV file into a pandas DataFrame
     new_test_data = pd.read_csv(filepath)
-
     if deployed_model is not None:
-        # Detect anomalies in the data using the best_model algorithm
         outliers = deployed_model(new_test_data)
         fraud = new_test_data[outliers].reset_index(drop=True)
-
-        # Create a StringIO object to write the fraud data as a CSV file
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(fraud.columns)  # Write the column headers
-        writer.writerows(fraud.values)  # Write the rows of data
-
-        # Set the HTTP headers to indicate a CSV file download
+        writer.writerow(fraud.columns)
+        writer.writerows(fraud.values)
         headers = {
             'Content-Type': 'text/csv',
             'Content-Disposition': 'attachment; filename=fraudulent_claims.csv'
         }
-
-        # Return the CSV file as a response object
         return Response(output.getvalue(), headers=headers)
 
-    else:
-        models = session.get('models')
-        return render_template('user-page.htm', models=models, best_model=best_model_name)
+    models = session.get('models')
+    return render_template('user-page.htm', models=models, best_model=best_model_name)
+
+
+def run_model_performance_evaluation(data_file, labels_file):
+    """
+    Run the model performance evaluation using preprocessed data and actual labels.
+    Args:
+        data_file (str): The path to the preprocessed dataset file.
+        labels_file (str): The path to the file containing the actual labels.
+    Returns:
+        None
+    """
+    define_models(data_file, labels_file)
+    app.run(debug=True)
 
 
 if __name__ == '__main__':
-    data_for_model_performance_file = "lympho(data).csv"  # Provide the preprocessed dataset
-    actual_labels_file = "lympho(gt).csv"
-    define_models(data_for_model_performance_file, actual_labels_file)
-    app.run(debug=True)
+    # Provide the paths to the preprocessed dataset and the actual labels
+    DATA_FILE = "lympho(data).csv"
+    LABELS_FILE = "lympho(gt).csv"
 
-# Headers are there
+    # Run the model performance evaluation
+    run_model_performance_evaluation(DATA_FILE, LABELS_FILE)
