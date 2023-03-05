@@ -1,6 +1,6 @@
 """
 Main module that comprises of the Flask App for hosting the webpage,
-along with the fraud analysis
+along with the fraud analysis.
 """
 import csv
 import time
