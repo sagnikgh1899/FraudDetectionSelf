@@ -1,33 +1,19 @@
 """
-This script implements the LOF (Local Outlier Factor) using PyOD library to detect anomalies.
-LOF is an unsupervised outlier detection method which computes the local density deviation of a given data point
-with respect to its neighbors. It considers as outliers the samples that have a substantially lower density than
-their neighbors.
+This module implements the LOF (Local Outlier Factor) using PyOD library to detect anomalies.
 """
 
-import numpy as np
 import pandas as pd
 from pyod.models.lof import LOF
 
 
-def lof_anomaly_detection(data, contamination=0.055):
+def lof_anomaly_detection(data: pd.DataFrame, contamination: float = 0.055) -> pd.Series:
     """
-    Detects anomalies in the input data using the LOF algorithm.
-
-    Parameters:
-        data (pandas.DataFrame or numpy.ndarray): Input data to be analyzed.
-        contamination (float): Proportion of outliers in the data.
-
+    Args:
+        data : Pandas DataFrame containing the data for fraud detection.
+        contamination : The proportion of outliers in the data set.
     Returns:
-        numpy.ndarray: A boolean array indicating whether each data point is an outlier or not.
-
+        pandas.Series: A binary vector with 'True' for outliers and 'False' for inliers.
     """
-
-    # Initialize LOF model
     lof = LOF(contamination=contamination)
-
-    # Fit the model and predict outliers
     y_pred = lof.fit_predict(data)
-
-    # Return a binary vector with 'True' for outliers and 'False' for inliers
     return pd.Series(y_pred == 1, index=data.index)

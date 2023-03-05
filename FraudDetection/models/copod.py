@@ -1,34 +1,20 @@
 """
 COPOD: COPOD (COunt-based POD) algorithm for outlier detection.
-
-COPOD is a simple yet powerful algorithm that utilizes the count-based approach for outlier detection.
-
+COPOD is a powerful algorithm that utilizes the count-based approach for outlier detection.
 """
 
-# Import necessary libraries
-from pyod.models.copod import COPOD
 import pandas as pd
+from pyod.models.copod import COPOD
 
 
 def copod_anomaly_detection(data, contamination=0.055):
     """
-    Function to detect outliers in a pandas dataframe using the COPOD algorithm.
-
-    Parameters:
-    -----------
-    data : pandas dataframe
-        Dataframe containing the data for anomaly detection.
-
+    Args:
+        data : Pandas DataFrame containing the data for fraud detection.
+        contamination : The proportion of outliers in the data set.
     Returns:
-    --------
-    A pandas Series with 'True' for outliers and 'False' for inliers.
+        pandas.Series: A binary vector with 'True' for outliers and 'False' for inliers.
     """
-
-    # Create COPOD object
-    lof = COPOD(contamination=contamination)
-
-    # Fit the model and predict outliers
-    y_pred = lof.fit_predict(data)
-
-    # Return a binary vector with 'True' for outliers and 'False' for inliers
+    copod = COPOD(contamination=contamination)
+    y_pred = copod.fit_predict(data)
     return pd.Series(y_pred == 1, index=data.index)
