@@ -6,4 +6,4 @@ dependencies:
   - pylint
   - python=3
   - pandas
-  - sklearn
+  - flask
