@@ -5,3 +5,5 @@ dependencies:
   - numpy
   - pylint
   - python=3
+  - pandas
+  - pyod
