@@ -1,0 +1,7 @@
+name: ci_example
+channels:
+  - defaults
+dependencies:
+  - numpy
+  - pylint
+  - python=3
