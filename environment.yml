@@ -1,4 +1,4 @@
-name: ci_example
+name: FraudDetection
 channels:
   - defaults
 dependencies:
