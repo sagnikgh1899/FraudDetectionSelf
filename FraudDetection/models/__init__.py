@@ -5,7 +5,7 @@ lof_anomaly_detection: Uses the LOF model.
 knn_anomaly_detection: Uses the KNN model.
 copod_anomaly_detection: Uses the COPOD model.
 abod_anomaly_detection: Uses the ABOD model.
-ecod_anomaly_detection: Uses the ECOD model.
+ecod_anomaly_detection: Uses the ECOD model
 """
 
 from .models import lof_anomaly_detection
