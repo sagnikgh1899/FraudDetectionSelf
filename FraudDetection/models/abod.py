@@ -9,7 +9,7 @@ def abod_anomaly_detection(data, contamination=0.055):
     """
     Args:
         data : Pandas DataFrame containing the data for fraud detection.
-        contamination : The proportion of outliers in the data set
+        contamination : The proportion of outliers in the data set.
     Returns:
         pandas.Series: A binary vector with 'True' for outliers and 'False' for inliers.
     """
