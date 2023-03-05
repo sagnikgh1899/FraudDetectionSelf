@@ -2,9 +2,9 @@
 This module contains the implementation of all the fraud detection models.
 ABOD: Angle-based Outlier Detection Algorithm
 COPOD: Copula-Based Outlier Detection Algorithm
-ECOD: Empirical Cumulative Outlier Detection Algorithm
-KNN: K-Nearest Neighbors Algorithm
-LOF: Local Outlier Factor Algorithm
+ECOD: Empirical Cumulative Outlier Detection Algorithm.
+KNN: K-Nearest Neighbors Algorithm.
+LOF: Local Outlier Factor Algorithm.
 """
 import pandas as pd
 # pylint: disable=C0413
