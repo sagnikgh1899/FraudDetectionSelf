@@ -14,7 +14,7 @@ from pyod.models.knn import KNN
 from pyod.models.lof import LOF
 
 
-def abod_anomaly_detection(data, contamination=0.055):
+def abod_anomaly_detection(data, contamination=0.056):
     """
     Args:
         data : Pandas DataFrame containing the data for fraud detection.

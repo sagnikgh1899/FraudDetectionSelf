@@ -21,7 +21,7 @@ from models import abod_anomaly_detection
 from models import ecod_anomaly_detection
 
 
-def create_directory_if_not_exists(directory):
+def create_directory_if_not_exists(directory): # Something
     """
     Create a directory if it does not exist.
     Args:
