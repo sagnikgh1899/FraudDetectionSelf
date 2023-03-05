@@ -8,3 +8,5 @@ dependencies:
   - pandas
   - flask
   - scikit-learn
+  - pip:
+    - pyod
