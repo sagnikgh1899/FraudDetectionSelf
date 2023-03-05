@@ -5,11 +5,11 @@ import sys
 import unittest
 
 sys.path.append("../models")
-from lof import lof_anomaly_detection
-from knn import knn_anomaly_detection
-from copod import copod_anomaly_detection
-from abod import abod_anomaly_detection
-from ecod import ecod_anomaly_detection
+from models import lof_anomaly_detection
+from models import knn_anomaly_detection
+from models import copod_anomaly_detection
+from models import abod_anomaly_detection
+from models import ecod_anomaly_detection
 
 
 class TestEntropy(unittest.TestCase):
