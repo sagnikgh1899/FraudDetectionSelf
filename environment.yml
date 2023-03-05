@@ -7,3 +7,4 @@ dependencies:
   - python=3
   - pandas
   - flask
+  - scikit-learn
