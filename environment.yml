@@ -1,7 +1,12 @@
-name: ci_example
+name: FraudDetection
 channels:
   - defaults
 dependencies:
   - numpy
   - pylint
   - python=3
+  - pandas
+  - flask
+  - scikit-learn
+  - pip:
+    - pyod
